@@ -1,0 +1,19 @@
+[package]
+name = "SoundSampler"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "lib"
+path = "src/lib/mod.rs"
+
+[[bin]]
+name = "cli"
+path = "src/cli/main.rs"
+
+[dependencies]
+clap = { version = "4.5.45", features = ["derive"] }
+hound = "3.5.1"
+rodio = "0.21.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.143"
