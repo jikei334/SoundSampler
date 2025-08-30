@@ -4,6 +4,7 @@
     "tracks": [
         {
             "source": "Triangle",
+            "bpm": 120,
             "score_notes": [
                 {
                     "semitone": 0,
