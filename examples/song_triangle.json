@@ -1,0 +1,39 @@
+{
+    "num_channel": 1,
+    "sample_rate": 44100,
+    "tracks": [
+        {
+            "source": "Triangle",
+            "score_notes": [
+                {
+                    "semitone": 0,
+                    "length": 1
+                },
+                {
+                    "semitone": 2,
+                    "length": 1
+                },
+                {
+                    "semitone": 4,
+                    "length": 1
+                },
+                {
+                    "semitone": 5,
+                    "length": 1
+                },
+                {
+                    "semitone": 4,
+                    "length": 1
+                },
+                {
+                    "semitone": 2,
+                    "length": 1
+                },
+                {
+                    "semitone": 0,
+                    "length": 2
+                }
+            ]
+        }
+    ]
+}

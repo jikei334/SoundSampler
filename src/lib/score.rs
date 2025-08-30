@@ -48,7 +48,6 @@ struct ScorePart {
     source: ScorePartSource,
     bpm: f32,
     score_notes: Vec<ScoreNote>,
-    sample_rate: Option<u32>,
     volume: Option<f32>,
     channel: Option<u16>,
 }
@@ -68,16 +67,12 @@ impl From<ScorePart> for Result<InstrumentTrack, Box<dyn Error>> {
     fn from(score_part: ScorePart) -> Self {
         let source: Result<Box<dyn SoundSource>, Box<dyn Error>> = score_part.source.into();
         let source = source?;
-        let sample_rate = match score_part.sample_rate {
-            Some(sample_rate) => sample_rate,
-            None => source.sample_rate(),
-        };
         let volume = match score_part.volume {
             Some(volume) => volume,
             None => DEFAULT_VOLUME,
         };
 
-        let mut track = InstrumentTrack::new(sample_rate, volume);
+        let mut track = InstrumentTrack::new(source.sample_rate(), volume);
 
         for score_note in score_part.score_notes {
             let start = match score_note.start {
