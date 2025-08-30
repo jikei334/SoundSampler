@@ -36,9 +36,22 @@ impl InstrumentTrack {
         self.data.len()
     }
 
-    pub fn add_note(&mut self, note: Note) {
+    pub fn add_note(&mut self, start: Option<f32>, note: Note) {
         let data = resample_data(note.data().clone(), note.sample_rate(), self.sample_rate);
-        self.data.extend(data.iter());
+        let start = match start {
+            Some(start) => {
+                (start * self.sample_rate as f32) as usize
+            },
+            None => {
+                self.data.len()
+            }
+        };
+        for (i, &d) in data.iter().enumerate() {
+            while self.data.len() <= start + i {
+                self.data.push(0f32);
+            }
+            self.data[start + i] += d;
+        }
     }
 }
 

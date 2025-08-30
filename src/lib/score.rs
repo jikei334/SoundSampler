@@ -39,14 +39,15 @@ impl From<ScorePartSource> for Result<Box<dyn SoundSource>, Box<dyn Error>> {
 #[derive(Deserialize, Serialize)]
 struct ScoreNote {
     semitone: Option<f32>,
-    seconds: f32,
+    start: Option<f32>,
+    length: f32,
 }
 
 #[derive(Deserialize, Serialize)]
 struct ScorePart {
     source: ScorePartSource,
+    bpm: f32,
     score_notes: Vec<ScoreNote>,
-    sample_rate: Option<u32>,
     volume: Option<f32>,
     channel: Option<u16>,
 }
@@ -66,19 +67,20 @@ impl From<ScorePart> for Result<InstrumentTrack, Box<dyn Error>> {
     fn from(score_part: ScorePart) -> Self {
         let source: Result<Box<dyn SoundSource>, Box<dyn Error>> = score_part.source.into();
         let source = source?;
-        let sample_rate = match score_part.sample_rate {
-            Some(sample_rate) => sample_rate,
-            None => source.sample_rate(),
-        };
         let volume = match score_part.volume {
             Some(volume) => volume,
             None => DEFAULT_VOLUME,
         };
 
-        let mut track = InstrumentTrack::new(sample_rate, volume);
+        let mut track = InstrumentTrack::new(source.sample_rate(), volume);
 
         for score_note in score_part.score_notes {
-            track.add_note(source.get_note(score_note.seconds, score_note.semitone));
+            let start = match score_note.start {
+                Some(start) => Some(60f32 / score_part.bpm * start),
+                None => None,
+            };
+            let length = 60f32 / score_part.bpm * score_note.length;
+            track.add_note(start, source.get_note(length, score_note.semitone));
         }
 
         Ok(track)
