@@ -12,8 +12,8 @@ use crate::track::{InstrumentTrack, Mixdown};
 const DEFAULT_VOLUME: f32 = 1.0f32;
 
 
-#[derive(Deserialize, Serialize)]
-enum ScorePartSource {
+#[derive(Clone, Deserialize, Serialize)]
+pub enum ScorePartSource {
     Sampler(PathBuf),
     Sin,
     Triangle,
@@ -37,14 +37,36 @@ impl From<ScorePartSource> for Result<Box<dyn SoundSource>, Box<dyn Error>> {
 }
 
 #[derive(Deserialize, Serialize)]
-struct ScoreNote {
+pub struct ScoreNote {
     semitone: Option<f32>,
     start: Option<f32>,
     length: f32,
 }
 
+impl ScoreNote {
+    pub fn new(semitone: Option<f32>, start: Option<f32>, length: f32) -> Self {
+        Self {
+            semitone,
+            start,
+            length,
+        }
+    }
+
+    pub fn semitone(&self) -> Option<f32> {
+        self.semitone
+    }
+
+    pub fn start(&self) -> Option<f32> {
+        self.start
+    }
+
+    pub fn length(&self) -> f32 {
+        self.length
+    }
+}
+
 #[derive(Deserialize, Serialize)]
-struct ScorePart {
+pub struct ScorePart {
     source: ScorePartSource,
     bpm: f32,
     score_notes: Vec<ScoreNote>,
@@ -54,6 +76,33 @@ struct ScorePart {
 
 impl ScorePart {
     const DEFAULT_CHANNEL: u16 = 0u16;
+
+    pub fn new(source: ScorePartSource, bpm: f32, score_notes: Vec<ScoreNote>,
+        volume: Option<f32>, channel: Option<u16>) -> Self {
+        Self {
+            source,
+            bpm,
+            score_notes,
+            volume,
+            channel,
+        }
+    }
+
+    pub fn source(&self) -> ScorePartSource {
+        self.source.clone()
+    }
+
+    pub fn bpm(&self) -> f32 {
+        self.bpm
+    }
+
+    pub fn score_notes(&self) -> &Vec<ScoreNote> {
+        &self.score_notes
+    }
+
+    pub fn volume(&self) -> Option<f32> {
+        self.volume
+    }
 
     pub fn channel(&self) -> u16 {
         match self.channel {
@@ -92,6 +141,28 @@ pub struct Score {
     num_channel: u16,
     sample_rate: u32,
     tracks: Vec<ScorePart>,
+}
+
+impl Score {
+    pub fn new(num_channel: u16, sample_rate: u32, tracks: Vec<ScorePart>) -> Self {
+        Self {
+            num_channel,
+            sample_rate,
+            tracks,
+        }
+    }
+
+    pub fn num_channel(&self) -> u16 {
+        self.num_channel
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    pub fn tracks(&self) -> &Vec<ScorePart> {
+        &self.tracks
+    }
 }
 
 impl From<Score> for Result<Mixdown, Box<dyn Error>> {

@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use crate::note::Note;
+use crate::score::ScorePartSource;
 use crate::source::SoundSource;
 
 
@@ -21,5 +22,9 @@ impl SoundSource for Sin {
         .collect();
 
         Note::new(data, DEFAULT_SAMPLE_RATE)
+    }
+
+    fn to_score_part_source(&self) -> ScorePartSource {
+        ScorePartSource::Sin
     }
 }

@@ -3,6 +3,7 @@ pub mod sin;
 pub mod triangle;
 
 use crate::note::Note;
+use crate::score::ScorePartSource;
 use crate::utils::resample_linear;
 
 
@@ -60,6 +61,8 @@ pub fn fade_in_out(note: Note, fade_seconds: f32) -> Note {
 
 pub trait SoundSource {
     fn get_base(&self) -> Note;
+
+    fn to_score_part_source(&self) -> ScorePartSource;
 
     fn get_rest(&self) -> Note {
         Note::new(

@@ -81,6 +81,10 @@ impl Mixdown {
         self.sample_rate
     }
 
+    pub fn tracks(&self) -> &Vec<Vec<InstrumentTrack>> {
+        &self.tracks
+    }
+
     pub fn channel_data(&self, channel: u16) -> Result<Vec<f32>, Box<dyn Error>> {
         match self.tracks.get(channel as usize) {
             Some(channel_track) => {
