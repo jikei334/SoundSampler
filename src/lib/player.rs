@@ -31,7 +31,23 @@ impl Player {
         Ok(())
     }
 
+    pub fn is_paused(&self) -> bool {
+        self.sink.is_paused()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sink.empty()
+    }
+
     pub fn sleep_until_end(&self) {
         self.sink.sleep_until_end()
+    }
+
+    pub fn play(&self) {
+        self.sink.play();
+    }
+
+    pub fn pause(&self) {
+        self.sink.pause();
     }
 }
