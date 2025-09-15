@@ -31,7 +31,7 @@ impl Sampler {
 
         Ok(Self {
             src_file,
-            note: Note::new(data, spec.sample_rate),
+            note: Note::new(data, spec.sample_rate, None),
         })
     }
 

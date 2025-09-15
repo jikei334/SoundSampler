@@ -14,7 +14,6 @@ path = "src/cli/main.rs"
 [[bin]]
 name = "gui"
 path = "src/gui/main.rs"
-windows_subsystem = "windows"
 
 [dependencies]
 clap = { version = "4.5.45", features = ["derive"] }

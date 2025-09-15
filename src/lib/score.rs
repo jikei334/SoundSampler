@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::envelope::Envelope;
 use crate::source::SoundSource;
 use crate::source::sampler::Sampler;
 use crate::source::sin::Sin;
@@ -37,18 +38,67 @@ impl From<ScorePartSource> for Result<Box<dyn SoundSource>, Box<dyn Error>> {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct ScoreEnvelope {
+    attack: f32,
+    decay: f32,
+    sustain: f32,
+    release: f32,
+}
+
+impl ScoreEnvelope {
+    pub fn new(attack: f32, decay: f32, sustain: f32, release: f32) -> Self {
+        Self {
+            attack,
+            decay,
+            sustain,
+            release,
+        }
+    }
+
+    pub fn attack(&self) -> f32 {
+        self.attack
+    }
+
+    pub fn decay(&self) -> f32 {
+        self.decay
+    }
+
+    pub fn sustain(&self) -> f32 {
+        self.sustain
+    }
+
+    pub fn release(&self) -> f32 {
+        self.release
+    }
+}
+
+
+impl From<ScoreEnvelope> for Envelope {
+    fn from(score_envelope: ScoreEnvelope) -> Self {
+        Self::new(
+            score_envelope.attack,
+            score_envelope.decay,
+            score_envelope.sustain,
+            score_envelope.release,
+        )
+    }
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct ScoreNote {
     semitone: Option<f32>,
     start: Option<f32>,
     length: f32,
+    envelope: Option<ScoreEnvelope>,
 }
 
 impl ScoreNote {
-    pub fn new(semitone: Option<f32>, start: Option<f32>, length: f32) -> Self {
+    pub fn new(semitone: Option<f32>, start: Option<f32>, length: f32, envelope: Option<ScoreEnvelope>) -> Self {
         Self {
             semitone,
             start,
             length,
+            envelope,
         }
     }
 
@@ -63,6 +113,10 @@ impl ScoreNote {
     pub fn length(&self) -> f32 {
         self.length
     }
+
+    pub fn envelope(&self) -> &Option<ScoreEnvelope> {
+        &self.envelope
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -72,19 +126,21 @@ pub struct ScorePart {
     score_notes: Vec<ScoreNote>,
     volume: Option<f32>,
     channel: Option<u16>,
+    envelope: Option<ScoreEnvelope>,
 }
 
 impl ScorePart {
     const DEFAULT_CHANNEL: u16 = 0u16;
 
     pub fn new(source: ScorePartSource, bpm: f32, score_notes: Vec<ScoreNote>,
-        volume: Option<f32>, channel: Option<u16>) -> Self {
+        volume: Option<f32>, channel: Option<u16>, envelope: Option<ScoreEnvelope>) -> Self {
         Self {
             source,
             bpm,
             score_notes,
             volume,
             channel,
+            envelope,
         }
     }
 
@@ -120,8 +176,12 @@ impl From<ScorePart> for Result<InstrumentTrack, Box<dyn Error>> {
             Some(volume) => volume,
             None => DEFAULT_VOLUME,
         };
+        let envelope: Option<Envelope> = match score_part.envelope {
+            Some(envelope) => Some(envelope.into()),
+            None => None,
+        };
 
-        let mut track = InstrumentTrack::new(source.sample_rate(), volume);
+        let mut track = InstrumentTrack::new(source.sample_rate(), volume, envelope);
 
         for score_note in score_part.score_notes {
             let start = match score_note.start {

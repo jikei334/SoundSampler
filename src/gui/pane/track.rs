@@ -3,7 +3,7 @@ use std::error::Error;
 use eframe::egui;
 use eframe::egui::Pos2;
 
-use lib::score::{ScoreNote, ScorePart, ScorePartSource};
+use lib::score::{ScoreEnvelope, ScoreNote, ScorePart, ScorePartSource};
 
 use crate::pane::Pane;
 use crate::pane::sound_source::SoundSourcePane;
@@ -28,19 +28,102 @@ impl From<Scale> for [bool; NUM_SCALE] {
 }
 
 #[derive(Clone, Copy)]
+pub struct EnvelopePane {
+    attack: f32,
+    decay: f32,
+    sustain: f32,
+    release: f32,
+}
+
+impl EnvelopePane {
+    pub fn new(attack: f32, decay: f32, sustain: f32, release: f32) -> Self {
+        Self {
+            attack,
+            decay,
+            sustain,
+            release,
+        }
+    }
+}
+
+impl Default for EnvelopePane {
+    fn default() -> Self {
+        Self::new(0f32, 0f32, 1f32, 0f32)
+    }
+}
+
+impl Pane for EnvelopePane {
+    fn ui(&mut self, ui: &mut egui::Ui, _: &egui::Context) {
+        egui::CollapsingHeader::new("Envelope")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Attack");
+                    ui.add(egui::DragValue::new(&mut self.attack)
+                        .speed(0.1)
+                        .range(0.0..=f32::INFINITY)
+                    );
+
+                    ui.label("Decay");
+                    ui.add(egui::DragValue::new(&mut self.decay)
+                        .speed(0.1)
+                        .range(0.0..=f32::INFINITY)
+                    );
+
+                    ui.label("Sustain");
+                    ui.add(egui::DragValue::new(&mut self.sustain)
+                        .speed(0.1)
+                        .range(0.0..=1.0f32)
+                    );
+
+                    ui.label("Release");
+                    ui.add(egui::DragValue::new(&mut self.release)
+                        .speed(0.1)
+                        .range(0.0..=1.0f32)
+                    );
+                });
+            });
+    }
+}
+
+impl From<EnvelopePane> for ScoreEnvelope {
+    fn from(envelope_pane: EnvelopePane) -> Self {
+        Self::new(
+            envelope_pane.attack,
+            envelope_pane.decay,
+            envelope_pane.sustain,
+            envelope_pane.release,
+        )
+    }
+}
+
+impl From<&ScoreEnvelope> for EnvelopePane {
+    fn from(score_envelope: &ScoreEnvelope) -> EnvelopePane {
+        Self::new(
+            score_envelope.attack(),
+            score_envelope.decay(),
+            score_envelope.sustain(),
+            score_envelope.release(),
+        )
+    }
+}
+
+#[derive(Clone, Copy)]
 struct NoteTile {
     semitone: f32,
     start: f32,
     length: f32,
+    envelope: Option<EnvelopePane>,
     is_property_displayed: bool
 }
 
 impl NoteTile {
-    fn new(semitone: f32, start: f32, length: f32) -> Self {
+    fn new(semitone: f32, start: f32, length: f32, envelope: Option<EnvelopePane>) -> Self {
         Self {
             semitone,
             start,
             length,
+            envelope,
             is_property_displayed: false,
         }
     }
@@ -73,6 +156,20 @@ impl Pane for NoteTile {
                             .range(0.0..=f32::INFINITY)
                         );
                     });
+
+                    match self.envelope.as_mut() {
+                        Some(envelope) => {
+                            envelope.ui(ui, ctx);
+                            if ui.button("Remove Envelope").clicked() {
+                                self.envelope = None;
+                            }
+                        },
+                        None => {
+                            if ui.button("Add Envelope").clicked() {
+                                self.envelope = Some(EnvelopePane::default());
+                            }
+                        },
+                    }
                 });
         }
     }
@@ -84,6 +181,10 @@ impl From<NoteTile> for ScoreNote {
             Some(note_tile.semitone),
             Some(note_tile.start),
             note_tile.length,
+            match note_tile.envelope {
+                Some(envelope) => Some(envelope.into()),
+                None => None,
+            },
         )
     }
 }
@@ -259,6 +360,7 @@ pub struct TrackPane {
     volume: f32,
     channel: u16,
     max_channel: u16,
+    envelope: Option<EnvelopePane>,
 
     scale: Scale,
 
@@ -268,7 +370,6 @@ pub struct TrackPane {
     semitone_move_unit: f32,
 
     beat_width: f32,
-    num_display_beat: f32,
     display_beat_offset: f32,
     beat_move_unit: f32,
 }
@@ -282,6 +383,7 @@ impl Default for TrackPane {
             volume: Self::DEFAULT_VOLUME,
             channel: Self::DEFAULT_CHANNEL,
             max_channel: Self::DEFAULT_CHANNEL+1,
+            envelope: None,
             scale: Self::DEFAULT_SCALE,
 
             semitone_height: Self::DEFAULT_SEMITONE_HEIGHT,
@@ -290,7 +392,6 @@ impl Default for TrackPane {
             semitone_move_unit: Self::DEFAULT_SEMITONE_MOVE_UNIT,
 
             beat_width: Self::DEFAULT_BEAT_WIDTH,
-            num_display_beat: Self::DEFAULT_NUM_BEAT,
             display_beat_offset: Self::DEFAULT_BEAT_OFFSET,
             beat_move_unit: Self::DEFAULT_BEAT_MOVE_UNIT,
         }
@@ -309,7 +410,6 @@ impl TrackPane {
     const DEFAULT_SEMITONE_MOVE_UNIT: f32 = 1.0f32;
 
     const DEFAULT_BEAT_WIDTH: f32 = 40f32;
-    const DEFAULT_NUM_BEAT: f32 = 16f32;
     const DEFAULT_BEAT_OFFSET: f32 = 0f32;
     const DEFAULT_BEAT_MOVE_UNIT: f32 = 1.0f32;
 
@@ -341,6 +441,10 @@ impl TrackPane {
                     semitone,
                     current_start,
                     score_note.length(),
+                    match score_note.envelope() {
+                        Some(envelope) => Some(envelope.into()),
+                        None => None,
+                    },
                 ));
             }
             start = start.max(current_start + score_note.length());
@@ -373,6 +477,20 @@ impl Pane for TrackPane {
             ui.add(egui::DragValue::new(&mut self.beat_move_unit)
                 .range(0f32..=f32::INFINITY));
         });
+
+        match self.envelope.as_mut() {
+            Some(envelope) => {
+                envelope.ui(ui, ctx);
+                if ui.button("Remove Envelope").clicked() {
+                    self.envelope = None;
+                }
+            },
+            None => {
+                if ui.button("Add Envelope").clicked() {
+                    self.envelope = Some(EnvelopePane::default());
+                }
+            },
+        }
 
         ui.horizontal(|ui| {
             ui.label("Source");
@@ -481,7 +599,7 @@ impl Pane for TrackPane {
                     let note_pos = grid_region.get_snapped_grid_pos(
                         grid_region.display_to_true_position(pos)
                     );
-                    self.source_notes.push(NoteTile::new(note_pos.y, note_pos.x, self.beat_move_unit));
+                    self.source_notes.push(NoteTile::new(note_pos.y, note_pos.x, self.beat_move_unit, None));
                 }
             }
 
@@ -504,6 +622,10 @@ impl From<&TrackPane> for ScorePart {
             track_pane.source_notes.iter().map(|&source_note| source_note.into()).collect::<Vec<ScoreNote>>(),
             Some(track_pane.volume),
             Some(track_pane.channel),
+            match track_pane.envelope {
+                Some(envelope) => Some(envelope.into()),
+                None => None,
+            },
         )
     }
 }

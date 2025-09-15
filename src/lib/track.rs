@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use hound::{WavWriter, WavSpec, SampleFormat};
 
+use crate::envelope::Envelope;
 use crate::error::IndexError;
 use crate::note::Note;
 use crate::utils::{normalize_data, resample_data};
@@ -13,14 +14,16 @@ pub struct InstrumentTrack {
     data: Vec<f32>,
     sample_rate: u32,
     volume: f32,
+    envelope: Option<Envelope>,
 }
 
 impl InstrumentTrack {
-    pub fn new(sample_rate: u32, volume: f32) -> Self {
+    pub fn new(sample_rate: u32, volume: f32, envelope: Option<Envelope>) -> Self {
         Self {
             data: vec![],
             sample_rate,
             volume,
+            envelope,
         }
     }
 
@@ -37,6 +40,13 @@ impl InstrumentTrack {
     }
 
     pub fn add_note(&mut self, start: Option<f32>, note: Note) {
+        let note = match note.to_owned().envelope().as_ref() {
+            Some(envelope) => envelope.apply(note),
+            None => match self.envelope.as_ref() {
+                Some(envelope) => envelope.apply(note),
+                None => note,
+            },
+        };
         let data = resample_data(note.data().clone(), note.sample_rate(), self.sample_rate);
         let start = match start {
             Some(start) => {

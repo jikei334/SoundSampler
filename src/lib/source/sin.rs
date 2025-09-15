@@ -21,7 +21,7 @@ impl SoundSource for Sin {
             })
         .collect();
 
-        Note::new(data, DEFAULT_SAMPLE_RATE)
+        Note::new(data, DEFAULT_SAMPLE_RATE, None)
     }
 
     fn to_score_part_source(&self) -> ScorePartSource {
