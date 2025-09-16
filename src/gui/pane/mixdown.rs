@@ -46,28 +46,20 @@ impl MixdownPane {
         &self.source_json_file
     }
 
-    pub fn save(&self, path: &Path) -> Result<(), Box<dyn Error>> {
+    pub fn save(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
         let score: Score = (&*self).into();
         let json = serde_json::to_string_pretty(&score)?;
         std::fs::write(path, json)?;
+        self.source_json_file = Some(path.to_path_buf());
 
         Ok(())
     }
 
-    pub fn save_as(&mut self, ctx: &egui::Context) -> Result<(), Box<dyn Error>> {
+    pub fn export(&self, filepath: PathBuf) -> Result<(), Box<dyn Error>> {
         let score: Score = (&*self).into();
-        if let Some(dialog) = &mut self.save_file_dialog {
-            if dialog.show(ctx).selected() {
-                if let Some(path) = dialog.path() {
-                    let json = serde_json::to_string_pretty(&score)?;
-                    std::fs::write(path, json)?;
-                    self.source_json_file = Some(path.to_path_buf());
-                    self.save_file_dialog = None;
-                }
-            }
-        }
+        let song = Result::<Mixdown, Box<dyn Error>>::from(score)?;
 
-        Ok(())
+        song.save(filepath)
     }
 }
 
