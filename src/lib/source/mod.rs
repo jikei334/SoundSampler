@@ -1,3 +1,4 @@
+pub mod karplus_strong;
 pub mod sampler;
 pub mod sin;
 pub mod triangle;

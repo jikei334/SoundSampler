@@ -14,6 +14,7 @@ enum SoundSourceChoice {
     Sampler,
     Sin,
     Triangle,
+    KarpusStrong,
 }
 
 impl SoundSourceChoice {
@@ -22,6 +23,7 @@ impl SoundSourceChoice {
             SoundSourceChoice::Sampler => "Sampler",
             SoundSourceChoice::Sin => "Sin",
             SoundSourceChoice::Triangle => "Triangle",
+            SoundSourceChoice::KarpusStrong => "KarpusStrong",
         }
     }
 }
@@ -32,6 +34,7 @@ impl From<ScorePartSource> for SoundSourceChoice {
             ScorePartSource::Sampler(_) => SoundSourceChoice::Sampler,
             ScorePartSource::Sin => SoundSourceChoice::Sin,
             ScorePartSource::Triangle => SoundSourceChoice::Triangle,
+            ScorePartSource::KarpusStrong(_) => SoundSourceChoice::KarpusStrong,
         }
     }
 }
@@ -65,6 +68,7 @@ impl Pane for SoundSourcePane {
                 ScorePartSource::Sin => "",
                 ScorePartSource::Triangle => "",
                 ScorePartSource::Sampler(file_name) => file_name.to_str().or(Some("")).unwrap(),
+                ScorePartSource::KarpusStrong(seed) => "",
             })
                 .selected_text(self.current.to_str())
                 .show_ui(ui, |ui| {
@@ -72,6 +76,7 @@ impl Pane for SoundSourcePane {
                         SoundSourceChoice::Sin,
                         SoundSourceChoice::Triangle,
                         SoundSourceChoice::Sampler,
+                        SoundSourceChoice::KarpusStrong,
                     ];
                     for choice in choices {
                         ui.selectable_value(&mut next, choice, choice.to_str());
@@ -95,6 +100,10 @@ impl Pane for SoundSourcePane {
                     SoundSourceChoice::Triangle => {
                         self.current = next;
                         self.source = ScorePartSource::Triangle;
+                    },
+                    SoundSourceChoice::KarpusStrong => {
+                        self.current = next;
+                        self.source = ScorePartSource::KarpusStrong(None);
                     },
                 }
             }

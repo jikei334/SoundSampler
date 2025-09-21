@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::envelope::Envelope;
+use crate::source::karplus_strong::KarpusStrong;
 use crate::source::SoundSource;
 use crate::source::sampler::Sampler;
 use crate::source::sin::Sin;
@@ -18,6 +19,7 @@ pub enum ScorePartSource {
     Sampler(PathBuf),
     Sin,
     Triangle,
+    KarpusStrong(Option<u64>),
 }
 
 impl From<ScorePartSource> for Result<Box<dyn SoundSource>, Box<dyn Error>> {
@@ -32,6 +34,9 @@ impl From<ScorePartSource> for Result<Box<dyn SoundSource>, Box<dyn Error>> {
             },
             ScorePartSource::Triangle => {
                 Ok(Box::new(Triangle))
+            },
+            ScorePartSource::KarpusStrong(seed) => {
+                Ok(Box::new(KarpusStrong::new(seed)))
             },
         }
     }
