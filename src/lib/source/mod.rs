@@ -1,3 +1,4 @@
+pub mod karplus_strong;
 pub mod sampler;
 pub mod sin;
 pub mod triangle;
@@ -13,12 +14,12 @@ const FADE_SECONDS_MIN: f32 = 0.002f32;
 fn fit_length(note: Note, target_seconds: f32) -> Note {
     let target_len = (target_seconds * note.sample_rate() as f32) as usize;
     if note.data().is_empty() {
-        return Note::new(vec![0f32; target_len], note.sample_rate());
+        return Note::new(vec![0f32; target_len], note.sample_rate(), note.envelope().to_owned());
     }
     if note.data().len() >= target_len {
         let mut data = note.data().clone();
         data.truncate(target_len);
-        return Note::new(data, note.sample_rate());
+        return Note::new(data, note.sample_rate(), note.envelope().to_owned());
     }
 
     let mut out = Vec::with_capacity(target_len);
@@ -31,7 +32,7 @@ fn fit_length(note: Note, target_seconds: f32) -> Note {
         }
     }
 
-    Note::new(out, note.sample_rate())
+    Note::new(out, note.sample_rate(), note.envelope().to_owned())
 }
 
 fn pitch_shift_semitones(note: Note, semitones: f32) -> Note {
@@ -39,7 +40,8 @@ fn pitch_shift_semitones(note: Note, semitones: f32) -> Note {
 
     Note::new(
         resample_linear(note.data().clone(), factor),
-        note.sample_rate()
+        note.sample_rate(),
+        note.envelope().to_owned(),
     )
 }
 
@@ -56,7 +58,7 @@ pub fn fade_in_out(note: Note, fade_seconds: f32) -> Note {
         data[n-1-i] *= g;
     }
 
-    Note::new(data, note.sample_rate())
+    Note::new(data, note.sample_rate(), note.envelope().to_owned())
 }
 
 pub trait SoundSource {
@@ -67,7 +69,8 @@ pub trait SoundSource {
     fn get_rest(&self) -> Note {
         Note::new(
             vec![0f32],
-            self.sample_rate()
+            self.sample_rate(),
+            None,
         )
     }
 

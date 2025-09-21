@@ -25,6 +25,7 @@ pub struct SoundSampler {
     message: Option<Message>,
     mixdown_pane: Option<MixdownPane>,
     save_file_dialog: Option<FileDialog>,
+    export_file_dialog: Option<FileDialog>,
 }
 
 impl Default for SoundSampler {
@@ -35,6 +36,7 @@ impl Default for SoundSampler {
             message: None,
             mixdown_pane: Some(MixdownPane::default()),
             save_file_dialog: None,
+            export_file_dialog: None,
         }
     }
 }
@@ -84,11 +86,14 @@ impl eframe::App for SoundSampler {
                                 dialog.open();
                                 self.save_file_dialog = Some(dialog);
                             }
-                            match mixdown_pane.save_as(&ctx) {
-                                Ok(()) => (),
-                                Err(error) => {
-                                    println!("{:?}", error);
-                                },
+
+                            if ui.button("Export").clicked() {
+                                let mut dialog = FileDialog::save_file(mixdown_pane.source_json_file().to_owned())
+                                    .show_files_filter(
+                                    Box::new(|path: &Path| path.extension().map(|ext| ext == "wav").unwrap_or(false))
+                                );
+                                dialog.open();
+                                self.export_file_dialog = Some(dialog);
                             }
                         }
                     })
@@ -117,6 +122,37 @@ impl eframe::App for SoundSampler {
                     ui.label(json_path.to_str().unwrap());
 
                     self.json_path = Some(json_path);
+                }
+
+                if let Some(mixdown_pane) = self.mixdown_pane.as_mut() {
+                    if let Some(dialog) = &mut self.save_file_dialog {
+                        if dialog.show(ctx).selected() {
+                            if let Some(path) = dialog.path() {
+                                match mixdown_pane.save(path) {
+                                    Ok(()) => (),
+                                    Err(error) => {
+                                        self.message = Some(Message::Error(format!("{:?}", error).to_string()));
+                                    },
+                                }
+                                self.save_file_dialog = None;
+                            }
+                        }
+                    }
+
+                    if let Some(dialog) = self.export_file_dialog.as_mut() {
+                        if dialog.show(ctx).selected() {
+                            if let Some(path) = dialog.path() {
+                                match mixdown_pane.export(path.to_path_buf()) {
+                                    Ok(()) => {
+                                        self.export_file_dialog = None;
+                                    },
+                                    Err(error) => {
+                                        println!("{:?}", error);
+                                    },
+                                }
+                            }
+                        }
+                    }
                 }
             });
         egui::CentralPanel::default().show(ctx, |ui| {
